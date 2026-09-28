@@ -3,7 +3,7 @@ node_modules/
 dist/
 build/
 
-# Variáveis de ambiente
+# Variáveis de ambiente (segredos - NUNCA commitar)
 .env
 .env.local
 .env.development
@@ -18,3 +18,21 @@ yarn-error.log*
 # SO
 .DS_Store
 Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Prisma
+backend/node_modules/.prisma/
+
+# Cobertura de testes
+coverage/
+lcov.info
+
+# IDEs
+.vscode/settings.json
+.idea/
+
+# Cache
+.turbo/
+*.tsbuildinfo
