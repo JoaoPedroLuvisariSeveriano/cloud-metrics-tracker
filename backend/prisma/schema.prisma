@@ -43,11 +43,13 @@ model Service {
   status     ServiceStatus @default(ACTIVE)
 
   // Localização geográfica (fornecida pela API de métricas)
-  country   String? @db.VarChar(100)
-  region    String? @db.VarChar(100)
-  city      String? @db.VarChar(100)
-  latitude  Decimal? @db.Decimal(9, 6)
-  longitude Decimal? @db.Decimal(9, 6)
+  // regionCode (ex: "br-sudeste") é a chave de consulta na API de carbono
+  regionCode String?  @map("region_code") @db.VarChar(100)
+  country    String?  @db.VarChar(100)
+  region     String?  @db.VarChar(100)
+  city       String?  @db.VarChar(100)
+  latitude   Decimal? @db.Decimal(9, 6)
+  longitude  Decimal? @db.Decimal(9, 6)
 
   lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -80,13 +82,12 @@ model MetricSnapshot {
   serviceId   String   @map("service_id") @db.Uuid
   collectedAt DateTime @default(now()) @map("collected_at") @db.Timestamptz(6)
 
-  // Métricas brutas recebidas da API externa
-  cpuUsage      Decimal? @map("cpu_usage") @db.Decimal(6, 3)  // Percentual 0–100
-  memoryBytes   BigInt?  @map("memory_bytes")
-  networkRxBps  BigInt?  @map("network_rx_bps")  // Bytes/s recebidos
-  networkTxBps  BigInt?  @map("network_tx_bps")  // Bytes/s transmitidos
-  diskReadBps   BigInt?  @map("disk_read_bps")
-  diskWriteBps  BigInt?  @map("disk_write_bps")
+  // Métricas brutas recebidas da API externa (GET /metrics/{id})
+  cpuPercent                Decimal? @map("cpu_percent") @db.Decimal(6, 3)  // 0–100
+  memoryGb                  Decimal? @map("memory_gb") @db.Decimal(12, 4)
+  diskGb                    Decimal? @map("disk_gb") @db.Decimal(12, 4)
+  networkGb                 Decimal? @map("network_gb") @db.Decimal(12, 4)
+  collectionIntervalSeconds Int?     @map("collection_interval_seconds")
 
   // Valores calculados pelo EnergyCalculatorService
   energyKwh   Decimal? @map("energy_kwh") @db.Decimal(18, 9)  // Alta precisão
@@ -119,11 +120,12 @@ model MetricSnapshot {
 // Permite operação degradada (fallback) quando a API de carbono estiver offline.
 // ─────────────────────────────────────────────────────────────────────────────
 model CarbonIntensity {
-  id           String   @id @default(uuid()) @db.Uuid
-  regionCode   String   @map("region_code") @db.VarChar(100)
-  country      String?  @db.VarChar(100)
-  intensityGco2 Decimal @map("intensity_gco2") @db.Decimal(10, 4) // gCO₂/kWh
-  recordedAt   DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  id                    String   @id @default(uuid()) @db.Uuid
+  regionCode            String   @map("region_code") @db.VarChar(100)
+  country               String?  @db.VarChar(100)
+  intensityGco2         Decimal  @map("intensity_gco2") @db.Decimal(10, 4) // gCO₂e/kWh
+  renewableSharePercent Decimal? @map("renewable_share_percent") @db.Decimal(5, 2)
+  recordedAt            DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
 
   // Índice composto para o padrão de consulta: "última leitura por região"
   @@index([regionCode, recordedAt(sort: Desc)], name: "idx_carbon_region_time")
